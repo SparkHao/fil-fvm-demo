@@ -8,6 +8,7 @@ use fvm_ipld_encoding::{to_vec, CborStore, RawBytes, DAG_CBOR};
 use fvm_sdk as sdk;
 use fvm_sdk::message::NO_DATA_BLOCK_ID;
 use fvm_shared::ActorID;
+use fvm_shared::address::Address;
 
 /// A macro to abort concisely.
 /// This should be part of the SDK as it's very handy.
@@ -75,6 +76,8 @@ pub fn invoke(_: u32) -> u32 {
     let ret: Option<RawBytes> = match sdk::message::method_number() {
         1 => constructor(),
         2 => say_hello(),
+        3 => get_actor_code_cid(params),
+        4 => get_root_cid(),
         _ => abort!(USR_UNHANDLED_MESSAGE, "unrecognized method"),
     };
 
@@ -126,4 +129,19 @@ pub fn say_hello() -> Option<RawBytes> {
             );
         }
     }
+}
+
+pub fn get_actor_code_cid(params: u32) -> Option<RawBytes> {
+    let params = sdk::message::params_raw(params).unwrap().1;
+    let params = RawBytes::new(params);
+    let addr: Address = params.deserialize().unwrap();
+    println!("[get_actor_code_cid], params: {:?}", addr);
+    let cid = sdk::actor::get_actor_code_cid(&addr).unwrap();
+    Some(RawBytes::new(cid.to_bytes()))
+}
+
+pub fn get_root_cid() -> Option<RawBytes> {
+    println!("[get_root_cid]");
+    let cid = sdk::sself::root().unwrap();
+    Some(RawBytes::new(cid.to_bytes()))
 }
